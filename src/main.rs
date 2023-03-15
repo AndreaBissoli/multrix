@@ -3,6 +3,7 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::ptr::write;
 use rand::Rng;
+use rayon::prelude::*;
 
 struct Matrix {
     data: Vec<Vec<f64>>,
@@ -23,8 +24,7 @@ impl Matrix {
         for i in 0..rows {
             for j in 0..cols {
                 data[i][j] = {
-                    if i == j {1.0}
-                    else {0.0}
+                    if i == j { 1.0 } else { 0.0 }
                 };
             }
         }
@@ -45,10 +45,10 @@ impl Matrix {
 
     fn from_file(filename: &str) -> Matrix {
         let contents = match fs::read_to_string(filename) {
-            Ok(v)=> v,
+            Ok(v) => v,
             Err(e) => {
                 eprintln!("{} failed to read from file '{}': {:?}",
-                    "Error:", filename, e);
+                          "Error:", filename, e);
                 std::process::exit(1);
             }
         };
@@ -85,7 +85,7 @@ impl Matrix {
 
 
         match fs::write(filename, matrix_str) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("Error: failed to write to file '{}': {:?}", filename, e);
                 std::process::exit(1);
@@ -104,17 +104,21 @@ impl Matrix {
 
         for i in 0..rows {
             for k in 0..cols {
-                let mut c = 0.0;
-                for j in 0..self.cols {
-                    c += &self.data[i][j] * other.data[j][k];
-                }
-                data[i][k] = c;
+                let mut column = &other.data.iter().map(|x| x[k]).collect();
+                data[i][k] = dot_product(&self.data[i], column);
             }
         }
-        Ok(Matrix {data, rows, cols})
+        Ok(Matrix { data, rows, cols })
     }
+
 }
 
+fn dot_product(vec1: &Vec<f64>, vec2: &Vec<f64>) -> f64 {
+    vec1.par_iter()
+        .zip(vec2)
+        .map(|(e1, e2)| e1*e2)
+        .reduce(|| 0.0, |a, b| a + b)
+}
 
 fn main() {
     /*let id = Matrix::identity(4, 3);
@@ -125,9 +129,9 @@ fn main() {
     /*let a = Matrix::from_file("input.txt");
     let b = Matrix::from_file("input2.txt");
     a.product(&b).unwrap().print();*/
-    let a = Matrix::new_rand(10000,1000);
+    let a = Matrix::new_rand(10, 10);
     a.write_to_file("a.txt");
-    let b = Matrix::new_rand(1000,10000);
+    let b = Matrix::new_rand(10, 10);
     b.write_to_file("b.txt");
     a.product(&b).unwrap().write_to_file("output.txt");
 }
