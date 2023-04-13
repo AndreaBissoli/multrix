@@ -19,6 +19,13 @@ fn main() {
 }
 ```
 
+## List of features
+- [x] Matrix creation from files, randomly, or from vectors
+- [x] Matrix addition
+- [x] Matrix transposition
+- [x] Matrix multiplication (sequential and parallel)
+- [x] Matrix output to files or stdout
+
 ## Documentation
 
 All the functionalities are documented, and the documentation can be found [here](https://docs.rs/multrix/0.1.0/multrix/).

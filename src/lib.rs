@@ -120,6 +120,7 @@ pub mod multrix {
             Matrix { data, rows: self.cols, cols: self.rows }
         }
 
+
         /// Returns whether the two matrices are conformable for multiplication.
         pub fn is_conformable(&self, other: &Matrix) -> bool {
             self.cols == other.rows
