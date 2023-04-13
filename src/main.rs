@@ -6,24 +6,22 @@ use rand::Rng;
 use rayon::prelude::*;
 
 struct Matrix {
-    data: Vec<Vec<f64>>,
+    data: Vec<f64>,
     rows: usize,
     cols: usize,
 }
 
 impl Matrix {
-    fn new(data: Vec<Vec<f64>>) -> Matrix {
-        let rows = data.len();
-        let cols = data[0].len();
+    fn new(data: Vec<f64>, rows: usize, cols: usize) -> Matrix {
         Matrix { data, rows, cols }
     }
 
     fn identity(rows: usize, cols: usize) -> Matrix {
-        let mut data: Vec<Vec<f64>> = vec![vec![0.0; cols]; rows];
+        let mut data: Vec<f64> = vec![0.0; cols*rows];
 
         for i in 0..rows {
             for j in 0..cols {
-                data[i][j] = {
+                data[i*cols + j] = {
                     if i == j { 1.0 } else { 0.0 }
                 };
             }
@@ -32,12 +30,12 @@ impl Matrix {
     }
 
     fn new_rand(rows: usize, cols: usize) -> Matrix {
-        let mut data: Vec<Vec<f64>> = vec![vec![0.0; cols]; rows];
+        let mut data: Vec<f64> = vec![0.0; cols*rows];
 
         let mut rng = rand::thread_rng();
         for i in 0..rows {
             for j in 0..cols {
-                data[i][j] = rng.gen_range(0..10) as f64;
+                data[i*cols + j] = rng.gen_range(0..10) as f64;
             }
         }
         Matrix { data, rows, cols }
@@ -52,35 +50,34 @@ impl Matrix {
                 std::process::exit(1);
             }
         };
-        let mut data = vec![];
-        contents.lines().for_each(|line| {
-            let row: Vec<f64> = line.split(',').map(|part| {
-                part.parse().unwrap()
-            }).collect();
-            data.push(row);
-        });
-        let rows = data.len();
-        let cols = data[0].len();
-
+        let mut data = Vec::new();
+        let rows = contents.lines().count();
+        let mut cols = 0;
+        for line in contents.lines() {
+            for num_str in line.split(',') {
+                data.push(num_str.parse().unwrap());
+            }
+            if cols == 0 {cols = line.split(',').count();}
+        }
         Matrix { data, rows, cols }
     }
 
     fn print(&self) {
-        for i in &self.data {
-            for element in i {
-                print!("{} ", element);
+        for (i, element) in self.data.iter().enumerate() {
+            print!("{},", element);
+            if (i+1) % self.cols == 0 {
+                println!();
             }
-            println!();
         }
     }
 
     fn write_to_file(&self, filename: &str) {
         let mut matrix_str = String::with_capacity(self.rows * self.cols * 2);
-        for i in 0..self.rows {
-            for element in &self.data[i] {
-                matrix_str.push_str(&format!("{},", element));
+        for (i, element) in self.data.iter().enumerate() {
+            matrix_str.push_str(&format!("{},", element));
+            if (i+1) % self.cols == 0 {
+                matrix_str.push('\n');
             }
-            matrix_str.push('\n');
         }
 
 
@@ -100,38 +97,59 @@ impl Matrix {
 
         let rows = self.rows;
         let cols = other.cols;
-        let mut data = vec![vec![0.0; cols]; rows];
-
-        for i in 0..rows {
-            for k in 0..cols {
-                let mut column = &other.data.iter().map(|x| x[k]).collect();
-                data[i][k] = dot_product(&self.data[i], column);
+        let mut data = vec![0.0; cols*rows];
+        for i in 0..cols*rows {
+            let mut c= 0.0;
+            let row = i / cols;
+            let col = i % cols;
+            for k in 0..self.cols {
+                c += self.data[row*self.cols + k] * other.data[k*other.cols + col];
             }
+            data[i] = c;
         }
         Ok(Matrix { data, rows, cols })
     }
 
-}
+    fn parallel_product(&self, other: &Matrix) -> Result<Matrix, &str> {
+        if self.cols != other.rows {
+            return Err("Matrices cannot be multiplied");
+        }
 
-fn dot_product(vec1: &Vec<f64>, vec2: &Vec<f64>) -> f64 {
-    vec1.par_iter()
-        .zip(vec2)
-        .map(|(e1, e2)| e1*e2)
-        .reduce(|| 0.0, |a, b| a + b)
+        let rows = self.rows;
+        let cols = other.cols;
+        let mut data = vec![0.0; cols*rows];
+
+        data.par_iter_mut()
+            .enumerate()
+            .for_each(|(i, c)| {
+                let row = i / cols;
+                let col = i % cols;
+                for k in 0..self.cols {
+                    *c += self.data[row*self.cols + k] * other.data[k*other.cols + col];
+                }
+            });
+
+        Ok(Matrix { data, rows, cols })
+    }
 }
 
 fn main() {
     /*let id = Matrix::identity(4, 3);
-    let a = Matrix::new(vec![vec![2.0, 3.0, 4.0], vec![1.0, 2.0, 3.0]]);
-    let b = Matrix::new(vec![vec![2.0, 3.0], vec![1.0, 2.0], vec![1.0, 5.0]]);
-    a.product(&b).unwrap().print();
-    id.print(); */
-    /*let a = Matrix::from_file("input.txt");
+    let a = Matrix::new(vec![1.0, 2.0, 3.0, 4.0], 2, 2);
+    let b = Matrix::new(vec![2.0, 3.0, 4.0, 5.0], 2, 2);
+    a.parallel_product(&b).unwrap().print();
+    id.print();
+    let a = Matrix::from_file("input.txt");
     let b = Matrix::from_file("input2.txt");
-    a.product(&b).unwrap().print();*/
-    let a = Matrix::new_rand(10, 10);
+    a.parallel_product(&b).unwrap().print();*/
+    println!("Generating a");
+    let a = Matrix::new_rand(10000, 1000);
+    println!("Writing a to file");
     a.write_to_file("a.txt");
-    let b = Matrix::new_rand(10, 10);
+    println!("Generating b");
+    let b = Matrix::new_rand(1000, 10000);
+    println!("Writing b to file");
     b.write_to_file("b.txt");
-    a.product(&b).unwrap().write_to_file("output.txt");
+    println!("Multiplying a and b");
+    a.parallel_product(&b).unwrap().write_to_file("output.txt");
 }
