@@ -2,10 +2,14 @@
 name = "multrix"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A simple matrix multiplication library with multithreading support"
+repository = "https://github.com/AndreaBissoli/multrix"
+keywords = ["matrix", "multiplication", "multithreading"]
+categories = ["algorithms", "mathematics"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossbeam = "0.8.2"
 rand = "0.8.5"
 rayon = "1.7.0"
