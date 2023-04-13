@@ -198,16 +198,6 @@ pub mod multrix {
             Matrix { data, rows, cols }
         }
 
-        /// Prints the matrix to the standard output in the same comma-separated format as the input.
-        pub fn print(&self) {
-            for (i, element) in self.data.iter().enumerate() {
-                print!("{},", element);
-                if (i + 1) % self.cols == 0 {
-                    println!();
-                }
-            }
-        }
-
         /// Writes the matrix to the given file in the same comma-separated format as the input.
         ///
         /// # Panics
@@ -263,4 +253,16 @@ pub mod multrix {
         }
     }
 
+    use std::fmt;
+    impl fmt::Display for Matrix {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            for (i, element) in self.data.iter().enumerate() {
+                write!(f, "{},", element)?;
+                if (i + 1) % self.cols == 0 {
+                    writeln!(f)?;
+                }
+            }
+            Ok(())
+        }
+    }
 }
