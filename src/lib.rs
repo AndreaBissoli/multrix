@@ -120,10 +120,32 @@ pub mod multrix {
             Matrix { data, rows: self.cols, cols: self.rows }
         }
 
-
         /// Returns whether the two matrices are conformable for multiplication.
         pub fn is_conformable(&self, other: &Matrix) -> bool {
             self.cols == other.rows
+        }
+
+        /// Adds the given matrix to the current one and returns the result.
+        ///
+        /// # Panics
+        /// The function panics if the matrices cannot be added: they must have the same dimensions.
+        fn addition(self, other: Matrix) -> Matrix {
+            assert_eq!(self.rows, other.rows, "Matrices cannot be added");
+            assert_eq!(self.cols, other.cols, "Matrices cannot be added");
+            let mut data = vec![0.0; self.rows * self.cols];
+            for i in 0..self.rows * self.cols {
+                data[i] = self.data[i] + other.data[i];
+            }
+            Matrix { data, rows: self.rows, cols: self.cols }
+        }
+
+        /// Negates the sign of the current matrix and returns the result.
+        fn negation(self) -> Matrix {
+            let mut data = vec![0.0; self.rows * self.cols];
+            for i in 0..self.rows * self.cols {
+                data[i] = -self.data[i];
+            }
+            Matrix { data, rows: self.rows, cols: self.cols }
         }
 
         /// Returns the product between the current matrix and the given one, and uses only one thread.
@@ -131,7 +153,7 @@ pub mod multrix {
         /// # Panics
         /// The function panics if the matrices cannot be multiplied: the number of columns of the
         /// first matrix must be equal to the number of rows of the second matrix.
-        pub fn product(&self, other: &Matrix) -> Matrix {
+        pub fn product(self, other: Matrix) -> Matrix {
             if self.cols != other.rows {
                 panic!("Matrices cannot be multiplied");
             }
@@ -156,7 +178,7 @@ pub mod multrix {
         /// # Panics
         /// The function panics if the matrices cannot be multiplied: the number of columns of the
         /// first matrix must be equal to the number of rows of the second matrix.
-        pub fn parallel_product(&self, other: &Matrix) -> Matrix {
+        pub fn parallel_product(self, other: Matrix) -> Matrix {
             if self.cols != other.rows {
                 panic!("Matrices cannot be multiplied");
             }
@@ -209,4 +231,36 @@ pub mod multrix {
         }
 
     }
+    use std::ops::Add;
+    impl Add for Matrix {
+        type Output = Matrix;
+        fn add(self, other: Matrix) -> Matrix {
+            self.addition(other)
+        }
+    }
+
+    use std::ops::Neg;
+    impl Neg for Matrix {
+        type Output = Matrix;
+        fn neg(self) -> Matrix {
+            self.negation()
+        }
+    }
+
+    use std::ops::Mul;
+    impl Mul for Matrix {
+        type Output = Matrix;
+        fn mul(self, other: Matrix) -> Matrix {
+            self.parallel_product(other)
+        }
+    }
+
+    use std::ops::Sub;
+    impl Sub for Matrix {
+        type Output = Matrix;
+        fn sub(self, other: Matrix) -> Matrix {
+            self + (-other)
+        }
+    }
+
 }
