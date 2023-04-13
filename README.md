@@ -15,7 +15,8 @@ use multrix::multrix::Matrix;
 fn main() {
     let a = Matrix::new_rand(100, 100);
     let b = Matrix::new_rand(100, 100);
-    a.parallel_product(&b).print();
+    println!("a + b = {}", a - b);
+    println!("a * b = {}", a * b);
 }
 ```
 
@@ -28,4 +29,4 @@ fn main() {
 
 ## Documentation
 
-All the functionalities are documented, and the documentation can be found [here](https://docs.rs/multrix/0.1.0/multrix/).
+All the functionalities are documented, and the documentation can be found [here](https://docs.rs/multrix/).
