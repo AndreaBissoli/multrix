@@ -5,6 +5,7 @@ pub mod multrix {
 
     /// A matrix struct that stores the values in a one-dimensional vector, where each row is stored
     /// contiguously.
+    #[derive(Debug, Clone)]
     pub struct Matrix {
         data: Vec<f64>,
         rows: usize,
@@ -107,6 +108,14 @@ pub mod multrix {
         /// Sets the value at the given row and column indices.
         pub fn set(&mut self, row: usize, col: usize, value: f64) {
             self.data[row * self.cols + col] = value;
+        }
+
+        pub fn get_cols(&self) -> usize {
+            self.cols
+        }
+
+        pub fn get_rows(&self) -> usize {
+            self.rows
         }
 
         /// Returns the current matrix transposed (rows and columns swapped).
@@ -220,6 +229,201 @@ pub mod multrix {
             }
         }
 
+        /// Performs Gauss-Jordan elimination on the current matrix, stopping when the matrix is in
+        /// reduced row echelon form.
+        pub fn gauss_jordan(&mut self) {
+            let mut i = 0;
+            let mut j = 0;
+            while i < self.rows && j < self.cols {
+                let mut max = i;
+                for k in i + 1..self.rows {
+                    if self.get(k, j).abs() > self.get(max, j).abs() {
+                        max = k;
+                    }
+                }
+                if self.get(max, j).abs() < 1e-10 {
+                    j += 1;
+                    continue;
+                }
+                self.swap_rows(i, max);
+                let pivot = self.get(i, j);
+                for k in 0..self.cols {
+                    self.set(i, k, self.get(i, k) / pivot);
+                }
+                for k in 0..self.rows {
+                    if k != i {
+                        let factor = self.get(k, j);
+                        for l in 0..self.cols {
+                            self.set(k, l, self.get(k, l) - factor * self.get(i, l));
+                        }
+                    }
+                }
+                i += 1;
+                j += 1;
+            }
+        }
+
+        /// The function perform Gaussian elimination on the matrix, stopping when the matrix is in
+        /// row echelon form.
+        pub fn gauss(&mut self) {
+            let mut i = 0;
+            let mut j = 0;
+            while i < self.rows && j < self.cols {
+                let mut max = i;
+                for k in i + 1..self.rows {
+                    if self.get(k, j).abs() > self.get(max, j).abs() {
+                        max = k;
+                    }
+                }
+                if self.get(max, j).abs() < 1e-10 {
+                    j += 1;
+                    continue;
+                }
+                self.swap_rows(i, max);
+                let pivot = self.get(i, j);
+                for k in 0..self.cols {
+                    self.set(i, k, self.get(i, k) / pivot);
+                }
+                for k in i + 1..self.rows {
+                    let factor = self.get(k, j);
+                    for l in 0..self.cols {
+                        self.set(k, l, self.get(k, l) - factor * self.get(i, l));
+                    }
+                }
+                i += 1;
+                j += 1;
+            }
+        }
+
+        /// Returns the determinant of the matrix.
+        ///
+        /// # Panics
+        /// The function panics if the matrix is not square.
+        pub fn determinant(&self) -> f64 {
+            assert_eq!(self.rows, self.cols, "Matrix must be square");
+            let mut i = 0;
+            let mut j = 0;
+            let mut det = 1.0;
+            let mut matrix: Matrix = self.clone();
+            while i < matrix.rows && j < matrix.cols {
+                let mut max = i;
+                for k in i + 1..matrix.rows {
+                    if matrix.get(k, j).abs() > matrix.get(max, j).abs() {
+                        max = k;
+                    }
+                }
+                if matrix.get(max, j).abs() < 1e-10 {
+                    j += 1;
+                    continue;
+                }
+                matrix.swap_rows(i, max);
+                if i != max {
+                    det *= -1.0;
+                }
+                let pivot = matrix.get(i, j);
+                for k in 0..matrix.cols {
+                    matrix.set(i, k, matrix.get(i, k) / pivot);
+                }
+                det *= pivot;
+                for k in i + 1..matrix.rows {
+                    let factor = matrix.get(k, j);
+                    for l in 0..matrix.cols {
+                        matrix.set(k, l, matrix.get(k, l) - factor * matrix.get(i, l));
+                    }
+                }
+                i += 1;
+                j += 1;
+            }
+            det
+        }
+
+        /// Returns the inverse of the matrix.
+        ///
+        /// # Panics
+        /// The function panics if the matrix is not square.
+        pub fn inverse(&self) -> Matrix {
+            assert_eq!(self.rows, self.cols, "Matrix must be square");
+            let mut matrix: Matrix = self.clone();
+            let mut inverse: Matrix = Matrix::new_identity(self.rows);
+            let mut i = 0;
+            let mut j = 0;
+            while i < matrix.rows && j < matrix.cols {
+                let mut max = i;
+                for k in i + 1..matrix.rows {
+                    if matrix.get(k, j).abs() > matrix.get(max, j).abs() {
+                        max = k;
+                    }
+                }
+                if matrix.get(max, j).abs() < 1e-10 {
+                    j += 1;
+                    continue;
+                }
+                matrix.swap_rows(i, max);
+                inverse.swap_rows(i, max);
+                let pivot = matrix.get(i, j);
+                for k in 0..matrix.cols {
+                    matrix.set(i, k, matrix.get(i, k) / pivot);
+                    inverse.set(i, k, inverse.get(i, k) / pivot);
+                }
+                for k in 0..matrix.rows {
+                    if k != i {
+                        let factor = matrix.get(k, j);
+                        for l in 0..matrix.cols {
+                            matrix.set(k, l, matrix.get(k, l) - factor * matrix.get(i, l));
+                            inverse.set(k, l, inverse.get(k, l) - factor * inverse.get(i, l));
+                        }
+                    }
+                }
+                i += 1;
+                j += 1;
+            }
+            inverse
+        }
+
+        /// Returns the rank of the matrix
+        pub fn rank(&self) -> usize {
+            let mut matrix: Matrix = self.clone();
+            let mut i = 0;
+            let mut j = 0;
+            let mut rank = 0;
+            while i < matrix.rows && j < matrix.cols {
+                let mut max = i;
+                for k in i + 1..matrix.rows {
+                    if matrix.get(k, j).abs() > matrix.get(max, j).abs() {
+                        max = k;
+                    }
+                }
+                if matrix.get(max, j).abs() < 1e-10 {
+                    j += 1;
+                    continue;
+                }
+                matrix.swap_rows(i, max);
+                let pivot = matrix.get(i, j);
+                for k in 0..matrix.cols {
+                    matrix.set(i, k, matrix.get(i, k) / pivot);
+                }
+                for k in i + 1..matrix.rows {
+                    let factor = matrix.get(k, j);
+                    for l in 0..matrix.cols {
+                        matrix.set(k, l, matrix.get(k, l) - factor * matrix.get(i, l));
+                    }
+                }
+                i += 1;
+                j += 1;
+                rank += 1;
+            }
+            rank
+        }
+
+        fn swap_rows(&mut self, i: usize, j: usize) {
+            for k in 0..self.cols {
+                let tmp = self.get(i, k);
+                self.set(i, k, self.get(j, k));
+                self.set(j, k, tmp);
+            }
+        }
+
+
     }
     use std::ops::Add;
     impl Add for Matrix {
@@ -263,6 +467,16 @@ pub mod multrix {
                 }
             }
             Ok(())
+        }
+    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        #[test]
+        fn test_g_j() {
+            let mut a = Matrix::new_rand(10, 10);
+            a.gauss();
+            println!("{}", a.rank());
         }
     }
 }

@@ -25,6 +25,10 @@ fn main() {
 - [x] Matrix addition
 - [x] Matrix transposition
 - [x] Matrix multiplication (sequential and parallel)
+- [x] Matrix determinant
+- [x] Matrix inversion
+- [x] Matrix Gaussian elimination and row reduction
+- [x] Matrix rank
 - [x] Matrix output to files or stdout
 
 ## Documentation
